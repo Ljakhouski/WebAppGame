@@ -1,0 +1,51 @@
+﻿@Model LoginModel
+@{
+}
+<html>
+<head>
+    <style>
+        .form_box {
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px;
+            background-color: white;
+            box-shadow: 10px 10px;
+            left: 50%;
+            top: 50%;
+            /* центрирование */
+            width: 300;
+            margin: 0 auto;
+            box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;
+        }
+
+            .form_box input {
+                margin: 3px;
+                /*background-color: cadetblue;*/
+            }
+
+        .main_div {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main_div">
+        <div class="form_box">
+            <form asp-controller="Home" asp-action="login" method="post">
+                <div class="form-group">
+                    <label for="Email">Name:</label> <br>
+                    <input class="form-control" type="name" name="name" required />
+                </div>
+                <br>
+                <button class="btn btn-outline-primary" type="submit">Ok</button>
+            </form>
+        </div>
+    </div>
+
+
+</body>
+</html>

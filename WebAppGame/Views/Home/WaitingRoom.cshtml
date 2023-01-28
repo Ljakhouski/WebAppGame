@@ -1,0 +1,83 @@
+﻿@model User
+
+<style>
+    .listElement{
+        background-color: white;
+        margin: 50px;
+        padding: 30px;
+        box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;
+        align-content: center;
+        place-content: center;
+        text-align: center;
+    }
+
+    .listBtn {
+        margin: 10px;
+        width: 300px;
+    }
+    
+</style>
+<h1> Hello, @Model.Name</h1>
+
+<h2>Choose player:</h2>
+    <div class="listElement" id="listE">        
+    </div>
+
+<script>
+    @{
+        var name_ = $"\"{Model.Name}\"";
+    }
+    setInterval(
+        function act() {
+            $.ajax({
+                type: "get",
+                url: "/waitingRoom/getUsers/",
+                data: {
+                    
+                user:  @Html.Raw(name_)
+                        },
+        success: function (data) {
+            let obj = JSON.parse(data);
+            
+            let el = document.getElementById("listE");
+                        //el.innerHTML = "<button type=\"button\" class=\"btn btn-primary btn-lg listBtn\" onclick=\"chooseByName( 'qwe') \"> qweqweqweq</button> <br/>"
+                       // el.innerHTML += " <button type=\"button\" class=\"btn btn-primary btn-lg listBtn\" onclick=\"chooseByName( 'grwf 444') \"> qweqwefds </button> <br/>";
+            for(let i = 0; i<obj.length; i++)
+                if (obj[i].Name != @Html.Raw(name_))
+                    //el.innerHTML += "<button type=\"button\" class=\"btn btn-primary btn-lg\" onclick=\"choose(\"" + obj[i].Name + "\")\">" + obj[i].Name + "</button> <br/>";
+                    el.innerHTML += "<button type=\"button\" class=\"btn btn-primary btn-lg listBtn\" onclick=\"chooseByName( '" + obj[i].Name + "') \">" + obj[i].Name + "</button> <br/>";
+        }
+        }); },
+             1000
+            );
+
+    
+
+    setInterval(
+        function act() {
+            $.ajax({
+                type: "get",
+                url: "/waitingroom/checkState/",
+                data: { user:@Html.Raw(name_)},
+                success: function (data) {
+                    if (data != "none")
+                    {
+                        window.location.href = data;
+                    }
+                    } });}, 1000);
+
+
+    function chooseByName(name) {
+        debugger
+        $.ajax({
+            type: "get",
+            url: "/waitingroom/chooseUser/",
+            data: { username1: name, username2: @Html.Raw(name_) },
+            success: function (data) {
+                window.location.href = data;
+            }
+        });
+    }
+
+    
+</script>
