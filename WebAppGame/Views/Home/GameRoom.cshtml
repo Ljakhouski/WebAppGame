@@ -17,7 +17,6 @@
     }
 
     .board {
-        width: 100vw;
         height: 100vh;
         display: grid;
         justify-content: center;
@@ -116,7 +115,19 @@
         height: calc(var(--mark-size) * .7);
         background-color: white;
     }
-
+    .fakescreen {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0);
+        justify-content: center;
+        align-items: center;
+        color: white;
+        flex-direction: column;
+    }
     .winning-message {
         display: none;
         position: fixed;
@@ -124,7 +135,7 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background-color: rgba(0, 0, 0, .9);
+        background-color: rgba(0, 0, 0, 0.9);
         justify-content: center;
         align-items: center;
         color: white;
@@ -132,23 +143,28 @@
         flex-direction: column;
     }
 
-        .winning-message button {
-            font-size: 3rem;
-            background-color: white;
-            border: 1px solid black;
-            padding: .25em .5em;
-            cursor: pointer;
-        }
+    .winning-message button {
+        font-size: 3rem;
+        background-color: white;
+        border: 1px solid black;
+        padding: .25em .5em;
+        cursor: pointer;
+    }
+    
+    .winning-message button:hover {
+        background-color: black;
+        color: white;
+        border-color: white;
+    }
+    
+    .winning-message.show {
+        display: flex;
+    }
 
-            .winning-message button:hover {
-                background-color: black;
-                color: white;
-                border-color: white;
-            }
-
-        .winning-message.show {
-            display: flex;
-        }
+    .fakescreen.show 
+    {
+        display: flex;
+    }
 </style>
 
 <head>
@@ -177,6 +193,8 @@
         <div data-winning-message-text></div>
         <button id="restartButton">Restart</button>
     </div>
+
+    <div class="fakescreen" id="f_screen">  </div>
 </body>
 
 <script src="~/js/signalr/dist/browser/signalr.js"></script>
@@ -192,7 +210,6 @@
 
     class ReceiveModel
     {
-        isX = false;
         cell = "";
         from = "";
         to = "";
@@ -212,6 +229,13 @@
         if (to == @Html.Raw(myName)) {
             let obj = JSON.parse(jsonMessage);
             enemyClick(document.getElementById(obj.cell), obj.isX)
+        }
+    });
+
+    connection.on("RestartEvent", function (from, to) {
+
+        if (to == @Html.Raw(myName)) {
+            startGame();
         }
     });
 
@@ -250,18 +274,29 @@
     const cellElements = document.querySelectorAll('[data-cell]')
     const board = document.getElementById('board')
     const winningMessageElement = document.getElementById('winningMessage')
+    const f_screen = document.getElementById('f_screen')
     const restartButton = document.getElementById('restartButton')
     const winningMessageTextElement = document.querySelector('[data-winning-message-text]')
     let circleTurn
-    let Is_X_mode = true;
+    let my_mode_is_X_mode = true;
 
     startGame()
 
-    restartButton.addEventListener('click', startGame)
+    restartButton.addEventListener('click', restartGame)
 
+    function restartGame()
+    {
+        connection.invoke("Restart", @Html.Raw(myName), @Html.Raw(enemy)).catch(function (err) {
+            return console.error(err.toString());
+        });
+        startGame()
+    }
     function startGame() {
-        Is_X_mode = true;
-        circleTurn = !Is_X_mode;
+        unblockArea();
+        winningMessageElement.classList.remove('show')
+
+        my_mode_is_X_mode = true;
+        circleTurn = !my_mode_is_X_mode;
 
         cellElements.forEach(cell => {
             cell.classList.remove(X_CLASS)
@@ -271,18 +306,20 @@
         })
         setBoardHoverClass()
         winningMessageElement.classList.remove('show')
+        //f_screen.classList.remove('show')
     }
-    function enemyClick(cell, is_X) {
+    function enemyClick(cell) {
 
         if (isEmptyMap())
         {
-            Is_X_mode = false;
+            my_mode_is_X_mode = false;
             circleTurn = true;
         }
         
 
         // const cell = e.target
-        const currentClass = circleTurn ? CIRCLE_CLASS : X_CLASS
+        const currentClass = my_mode_is_X_mode ? CIRCLE_CLASS : X_CLASS
+
         placeMark(cell, currentClass)
         if (checkWin(currentClass)) {
             endGame(false)
@@ -293,30 +330,19 @@
             setBoardHoverClass()
         }
 
-        let m = new ReceiveModel();
-        m.from = @Html.Raw(myName);
-        m.to = @Html.Raw(enemy);
-        m.cell = cell.id;
-
-        jsonMessage = JSON.stringify(m);
-
-       /* connection.invoke("SendJson", @Html.Raw(myName), @Html.Raw(enemy), jsonMessage).catch(function (err) {
-            return console.error(err.toString());
-        });
-        */
-
         unblockArea();
+        circleTurn = !my_mode_is_X_mode
     }
     function myClick(e) {
-        
+        blockArea();
         if (isEmptyMap())
         {
-            Is_X_mode = true;
+            my_mode_is_X_mode = true;
         }
         const cell = e.target
         
        // const cell = e.target
-        const currentClass = circleTurn ? CIRCLE_CLASS : X_CLASS
+        const currentClass = my_mode_is_X_mode ? X_CLASS : CIRCLE_CLASS
         placeMark(cell, currentClass)
         if (checkWin(currentClass)) {
             endGame(false)
@@ -338,16 +364,18 @@
             return console.error(err.toString());
         });
 
-        blockArea();
+        
     }
 
     function endGame(draw) {
+        
         if (draw) {
             winningMessageTextElement.innerText = 'Draw!'
         } else {
             winningMessageTextElement.innerText = `${circleTurn ? "O's" : "X's"} Wins!`
         }
         winningMessageElement.classList.add('show')
+        unblockArea();
     }
 
     function isEmptyMap()
@@ -392,9 +420,17 @@
     }
 
     function setBoardHoverClass() {
-        board.classList.remove(X_CLASS)
+        /*board.classList.remove(X_CLASS)
         board.classList.remove(CIRCLE_CLASS)
         if (circleTurn) {
+            board.classList.add(CIRCLE_CLASS)
+        } else {
+            board.classList.add(X_CLASS)
+        }*/
+
+        board.classList.remove(X_CLASS)
+        board.classList.remove(CIRCLE_CLASS)
+        if (!my_mode_is_X_mode) {
             board.classList.add(CIRCLE_CLASS)
         } else {
             board.classList.add(X_CLASS)
@@ -414,20 +450,21 @@
     div_id.style.pointerEvents='auto'; //on click
     div_id.style.pointerEvents='none'; //off click*/
 
-    function blockArea()
-    {
-        alert("block");
-        var div_id = document.getElementById('main_area');
-
-        div_id.style.pointerEvents = 'none';
+    function blockArea() {
+        //winningMessageElement.classList.add('show')
+        //alert("block");
+        var area = document.getElementById('f_screen');
+        area.classList.add('show')
+        //div_id.style.pointerEvents = 'none';
     }
 
-    function unblockArea()
-    {
-        alert("unblock");
-        var div_id = document.getElementById('main_area');
+    function unblockArea() {
+        //winningMessageElement.classList.remove('show')
+        //alert("unblock");
+        var area = document.getElementById('f_screen');
 
-        div_id.style.pointerEvents = 'auto'; 
+        //div_id.style.pointerEvents = 'auto'; 
+        area.classList.remove('show')
     }
 </script>
 </html>

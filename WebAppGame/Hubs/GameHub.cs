@@ -8,7 +8,10 @@ namespace WebAppGame.Hubs
         {
             await Clients.All.SendAsync("ReceiveJson", from, to, message);
         }
-
+        public async Task Restart(string from, string to)
+        {
+            await Clients.All.SendAsync("RestartEvent", from, to);
+        }
         //public async Task 
     }
 }
