@@ -160,16 +160,18 @@
     <title>Document</title>
 </head>
 <body>
-    <div class="board" id="board">
-        <div class="cell" data-cell id="c0"></div>
-        <div class="cell" data-cell id="c1"></div>
-        <div class="cell" data-cell id="c2"></div>
-        <div class="cell" data-cell id="c3"></div>
-        <div class="cell" data-cell id="c4"></div>
-        <div class="cell" data-cell id="c5"></div>
-        <div class="cell" data-cell id="c6"></div>
-        <div class="cell" data-cell id="c7"></div>
-        <div class="cell" data-cell id="c8"></div>
+    <div class="main_area">
+        <div class="board" id="board">
+            <div class="cell" data-cell id="c0"></div>
+            <div class="cell" data-cell id="c1"></div>
+            <div class="cell" data-cell id="c2"></div>
+            <div class="cell" data-cell id="c3"></div>
+            <div class="cell" data-cell id="c4"></div>
+            <div class="cell" data-cell id="c5"></div>
+            <div class="cell" data-cell id="c6"></div>
+            <div class="cell" data-cell id="c7"></div>
+            <div class="cell" data-cell id="c8"></div>
+        </div>
     </div>
     <div class="winning-message" id="winningMessage">
         <div data-winning-message-text></div>
@@ -207,14 +209,10 @@
     //get
     connection.on("ReceiveJson", function (from, to, jsonMessage) {
 
-        if (to != @Html.Raw(myName)) {
-            return;
+        if (to == @Html.Raw(myName)) {
+            let obj = JSON.parse(jsonMessage);
+            enemyClick(document.getElementById(obj.cell), obj.isX)
         }
-
-        let obj = JSON.parse(jsonMessage);
-
-        emulateHandleClick(document.getElementById(obj.cell), obj.isX) // make click
-        //li.textContent = `${user} says ${message}`;
     });
 
     connection.start().then(function () {
@@ -255,32 +253,66 @@
     const restartButton = document.getElementById('restartButton')
     const winningMessageTextElement = document.querySelector('[data-winning-message-text]')
     let circleTurn
+    let Is_X_mode = true;
 
     startGame()
 
     restartButton.addEventListener('click', startGame)
 
     function startGame() {
-        circleTurn = false
+        Is_X_mode = true;
+        circleTurn = !Is_X_mode;
+
         cellElements.forEach(cell => {
             cell.classList.remove(X_CLASS)
             cell.classList.remove(CIRCLE_CLASS)
-            cell.removeEventListener('click', handleClick)
-            cell.addEventListener('click', handleClick, { once: true })
+            cell.removeEventListener('click', myClick)
+            cell.addEventListener('click', myClick, { once: true })
         })
         setBoardHoverClass()
         winningMessageElement.classList.remove('show')
     }
-    function emulateHandleClick(e, is_X)
-    {
+    function enemyClick(cell, is_X) {
+
         if (isEmptyMap())
         {
-            circleTurn = !is_X;
+            Is_X_mode = false;
+            circleTurn = true;
         }
-        handleClick(e);
-    }
-    function handleClick(e) {
         
+
+        // const cell = e.target
+        const currentClass = circleTurn ? CIRCLE_CLASS : X_CLASS
+        placeMark(cell, currentClass)
+        if (checkWin(currentClass)) {
+            endGame(false)
+        } else if (isDraw()) {
+            endGame(true)
+        } else {
+            swapTurns()
+            setBoardHoverClass()
+        }
+
+        let m = new ReceiveModel();
+        m.from = @Html.Raw(myName);
+        m.to = @Html.Raw(enemy);
+        m.cell = cell.id;
+
+        jsonMessage = JSON.stringify(m);
+
+       /* connection.invoke("SendJson", @Html.Raw(myName), @Html.Raw(enemy), jsonMessage).catch(function (err) {
+            return console.error(err.toString());
+        });
+        */
+
+        unblockArea();
+    }
+    function myClick(e) {
+        
+        if (isEmptyMap())
+        {
+            Is_X_mode = true;
+        }
         const cell = e.target
         
        // const cell = e.target
@@ -305,6 +337,8 @@
         connection.invoke("SendJson", @Html.Raw(myName), @Html.Raw(enemy), jsonMessage).catch(function (err) {
             return console.error(err.toString());
         });
+
+        blockArea();
     }
 
     function endGame(draw) {
@@ -373,6 +407,27 @@
                 return cellElements[index].classList.contains(currentClass)
             })
         })
+    }
+
+    /*var div_id = document.getElementById('div_id');
+
+    div_id.style.pointerEvents='auto'; //on click
+    div_id.style.pointerEvents='none'; //off click*/
+
+    function blockArea()
+    {
+        alert("block");
+        var div_id = document.getElementById('main_area');
+
+        div_id.style.pointerEvents = 'none';
+    }
+
+    function unblockArea()
+    {
+        alert("unblock");
+        var div_id = document.getElementById('main_area');
+
+        div_id.style.pointerEvents = 'auto'; 
     }
 </script>
 </html>
